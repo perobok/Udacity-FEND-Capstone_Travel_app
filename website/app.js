@@ -1,46 +1,76 @@
-// Personal API Key for OpenWeatherMap API
-const apiURL = 'http://api.openweathermap.org/data/2.5/weather';
-const apiKey = '53b13c8594d3424db8a5cafbf426c968';
+// Personal API Key for geoNames API
+const apiGeoURL = 'http://api.geonames.org/searchJSON';
+const apiGeoUserName = 'perobok';
+// Personal API Key for WeatherBit API
+const apiWeatherURL = 'https://api.weatherbit.io/v2.0/forecast/daily';
+const apiWeatherKey = 'a37ee370636f4a9ea951b07969113c7e';
+// Personal API for Pixabay
+const apiPictureURL = 'https://pixabay.com/api/';
+const apiPictureKey = '20614359-7c7fdf79fa0e5a77a9260f522';
 
-// Create a new date instance dynamically with JS
-let d = new Date();
-let newDate = d.toLocaleDateString();
+// Create a new date instance dynamically with JS 
+let d = new Date()
+
+
+let yearC = d.getFullYear();
+let monthC = d.getMonth() + 1;
+let dtC = d.getDate();
+
+// If we want 0 in front of single number of day or month
+if (dtC < 10) {
+    dtC = '0' + dtC;
+}
+if (monthC < 10) {
+    monthC = '0' + monthC;
+}
+const today = yearC + '-' + monthC + '-' + dtC;
 
 // Event listener to add function to existing HTML DOM element
-document.querySelector("#generate").addEventListener('click', weatherData);
+document.querySelector("#generate").addEventListener('click', geoData);
 
-/* Function called by event listener :
+/* Function called by event listener :*/
 
-This is callback function thet will invoke after click on generate button. 
-I used asincronus function so I can use await to perform get, post and update inn order but only after previous function 
-was done. I used math.floor to round tempreture value. After that I invoked post data and updateUI functions.
-*/
-async function weatherData(e) {
+async function geoData(e) {
     e.preventDefault();
-    const feelings = document.querySelector("#feelings").value;
-    const zipCode = document.querySelector("#zip").value;
-    const data = await getData(zipCode);
-    const temp = Math.floor(data.main.temp);
-    const townName = data.name;
-    const dataPost = await postData(zipCode, temp, feelings, townName);
-    const update = await updateUI(zipCode, temp, feelings, townName);
+    // this part of code will return number of days before our trip. 
+    const tripDate = document.getElementById("date1").value;
+    const trip = new Date(Date.parse(tripDate));
+    const Difference_In_Time = trip.getTime() - d.getTime();
+    const differenceInDays = Difference_In_Time / (1000 * 3600 * 24);
+    const roundDays = Math.round(differenceInDays);
+    console.log(roundDays);
+    //then I was taking value from text input and pass int to the getData async function
+    const destination = document.querySelector("#destination").value;
+    const data = await getData(destination);
+
 };
-/* Function to GET Web API Data*/
-async function getData(zipCode) {
+/* Function to GET coordinates Data */
+async function getData(destination) {
     try {
-        const response = await fetch(`${apiURL}?zip=${zipCode}&appid=${apiKey}&units=metric`); // I declared metric units here
-        const data = await response.json();
-        console.log(data);
-        return data;
+        const responseGeo = await fetch(`${apiGeoURL}?q=${destination}&username=${apiGeoUserName}`);
+        const dataGeo = await responseGeo.json();
+        console.log(dataGeo.geonames[0])
+        const countryName = dataGeo.geonames[0].countryName;
+        const lat = dataGeo.geonames[0].lat;
+        const lng = dataGeo.geonames[0].lng;
+        console.log(countryName, lat, lng);
+        // to GET weather data
+        const responseWeather = await fetch(`${apiWeatherURL}?lat=${lat}&lon=${lng}&key=${apiWeatherKey}`);
+        const dataWeather = await responseWeather.json();
+        console.log(dataWeather)
+            // to GET picture 
+        const responsePic = await fetch(`${apiPictureURL}?key={ ${apiPictureKey} }&q=${destination}&image_type=photo`);
+        const dataPic = await responsePic.json();
+        console.log(dataPic)
+
     } catch (error) {
         console.log("error", error);
     }
-}
-/* Function to POST data 
+};
 
-I head a lot of dificulties to find whitch url to pass. All the time I had error that says: cors need to read http or https...
-My server was local so it was unknown to me. Finally I found solution on other sites to put localhost with port number. :) */
-
+// Function to get weather data from an API. 
+/* Function to POST data */
+/*
 async function postData(zipCode, temp, feelings, townName) {
     const response = await fetch('http://localhost:7600/', {
         method: 'POST',
@@ -51,25 +81,20 @@ async function postData(zipCode, temp, feelings, townName) {
     });
     return await response.text()
 };
-
-/* Function to GET Project Data 
-
-I tried to reach last object in array by "putting allData.lenght - 1" inside square brackets after innerHTML
-but that solution for some reason woun't work. There was no error in console but nothing showed in the DOM. 
- Then I decided to change get function in server.js. Instead of data.push I used data.unshift
-to put last entry at the start of array. Then it was easy to access with location [0]. */
+*/
 
 const updateUI = async(zipCode, temp, feelings, townName) => {
-    const request = await fetch(`http://localhost:7600/`)
-    try {
-        const allData = await request.json();
-        console.log(allData);
-        document.querySelector("#date").innerHTML = allData[0].newDate;
-        document.querySelector("#temp").innerHTML = 'Current temperature: ' + allData[0].temp + " &#176C";
-        document.querySelector("#townName").innerHTML = allData[0].zipCode + '  ' + allData[0].townName;
-        document.querySelector("#content").innerHTML = 'Your feeling today:  ' + allData[0].feelings;
+        const request = await fetch(`http://localhost:7600/`)
+        try {
+            const allData = await request.json();
+            console.log(allData);
+            document.querySelector("#date").innerHTML = allData[0].newDate;
+            document.querySelector("#temp").innerHTML = 'Current temperature: ' + allData[0].temp + " &#176C";
+            document.querySelector("#townName").innerHTML = allData[0].zipCode + '  ' + allData[0].townName;
+            document.querySelector("#content").innerHTML = 'Your feeling today:  ' + allData[0].feelings;
 
-    } catch (error) {
-        console.log("error", error);
-    }
-}
+        } catch (error) {
+            console.log("error", error);
+        }
+    } *
+    /
